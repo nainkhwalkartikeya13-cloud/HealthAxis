@@ -24,6 +24,8 @@ const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:5175',
   'http://localhost:5176',
+  'https://health-axis-five.vercel.app',
+  'https://health-axis-kpth.vercel.app',
   process.env.FRONTEND_URL,
   process.env.ADMIN_URL,
 ].filter(Boolean)
@@ -41,6 +43,12 @@ app.use(cors({
   },
   credentials: true,
 }))
+
+// Middleware to collapse multiple slashes into a single slash
+app.use((req, res, next) => {
+  req.url = req.url.replace(/\/+/g, '/')
+  next()
+})
 
 // Body parsers (must come before routes)
 app.use(express.json())
