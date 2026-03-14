@@ -4,29 +4,29 @@ import nodemailer from 'nodemailer'
 const contactRouter = express.Router()
 
 contactRouter.post('/send', async (req, res) => {
-    try {
-        const { firstName, lastName, email, message } = req.body
+  try {
+    const { firstName, lastName, email, message } = req.body
 
-        if (!firstName || !email || !message) {
-            return res.json({ success: false, message: 'Please fill all required fields.' })
-        }
+    if (!firstName || !email || !message) {
+      return res.json({ success: false, message: 'Please fill all required fields.' })
+    }
 
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.gmail.com',
-            port: parseInt(process.env.SMTP_PORT) || 587,
-            secure: false,
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        })
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: parseInt(process.env.SMTP_PORT) === 465,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    })
 
-        // Email to Kartikeya (site owner notification)
-        await transporter.sendMail({
-            from: `"HealthAxis Contact Form" <${process.env.EMAIL_FROM}>`,
-            to: process.env.SMTP_USER,
-            subject: `📩 New Contact Form Message from ${firstName} ${lastName || ''}`,
-            html: `
+    // Email to Kartikeya (site owner notification)
+    await transporter.sendMail({
+      from: `"HealthAxis Contact Form" <${process.env.EMAIL_FROM}>`,
+      to: process.env.SMTP_USER,
+      subject: `📩 New Contact Form Message from ${firstName} ${lastName || ''}`,
+      html: `
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 32px; border-radius: 16px;">
           <div style="background: #0D7377; padding: 24px 32px; border-radius: 12px 12px 0 0; text-align: center;">
             <h1 style="color: white; font-size: 22px; margin: 0;">🏥 HealthAxis</h1>
@@ -54,14 +54,14 @@ contactRouter.post('/send', async (req, res) => {
           <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px;">HealthAxis · Developed by Kartikeya Nainkhwal</p>
         </div>
       `,
-        })
+    })
 
-        // Auto-reply to the user who sent the message
-        await transporter.sendMail({
-            from: `"HealthAxis Support" <${process.env.EMAIL_FROM}>`,
-            to: email,
-            subject: `We received your message, ${firstName}! 👋`,
-            html: `
+    // Auto-reply to the user who sent the message
+    await transporter.sendMail({
+      from: `"HealthAxis Support" <${process.env.EMAIL_FROM}>`,
+      to: email,
+      subject: `We received your message, ${firstName}! 👋`,
+      html: `
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 32px; border-radius: 16px;">
           <div style="background: #0D7377; padding: 24px 32px; border-radius: 12px 12px 0 0; text-align: center;">
             <h1 style="color: white; font-size: 22px; margin: 0;">🏥 HealthAxis</h1>
@@ -81,14 +81,14 @@ contactRouter.post('/send', async (req, res) => {
           <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px;">© ${new Date().getFullYear()} HealthAxis · Developed by Kartikeya Nainkhwal</p>
         </div>
       `,
-        })
+    })
 
-        res.json({ success: true, message: 'Your message has been sent! We will reply within 24 hours.' })
+    res.json({ success: true, message: 'Your message has been sent! We will reply within 24 hours.' })
 
-    } catch (err) {
-        console.error('Contact form error:', err.message)
-        res.json({ success: false, message: 'Failed to send message. Please try again or email us directly.' })
-    }
+  } catch (err) {
+    console.error('Contact form error:', err.message)
+    res.json({ success: false, message: 'Failed to send message. Please try again or email us directly.' })
+  }
 })
 
 export default contactRouter
