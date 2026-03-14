@@ -3,23 +3,7 @@ import bcrypt from "bcrypt";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import userModel from "../models/userModel.js";
-import nodemailer from "nodemailer";
-import razorpay from "razorpay";
-
-const razorpayInstance = new razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-})
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: Number(process.env.SMTP_PORT) === 465, // true for 465, false for other ports
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+import axios from 'axios';
 
 // Doctor login
 const loginDoctor = async (req, res) => {
@@ -149,28 +133,43 @@ const appointmentComplete = async (req, res) => {
       const doctor = await doctorModel.findById(docId);
 
       if (user && user.email) {
-        const mailOptions = {
-          from: `"HealthAxis Team" <${process.env.EMAIL_FROM}>`,
-          to: user.email,
-          subject: `How was your appointment with Dr. ${doctor.name}?`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eff2f5; border-radius: 10px;">
-                <h2 style="color: #0D7377;">Thank you for choosing HealthAxis, ${user.name}!</h2>
-                <p>Your appointment with Dr. ${doctor.name} is now complete.</p>
-                <p>We'd love to hear about your experience. Your feedback helps other patients make informed decisions and helps our doctors provide the best care possible.</p>
-                <div style="text-align: center; margin: 30px 0;">
-                    <a href="${process.env.FRONTEND_URL}/my-appointments" style="background-color: #0D7377; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Leave a Review</a>
-                </div>
-                <hr style="border: none; border-top: 1px solid #eff2f5; margin: 20px 0;">
-                <p style="font-size: 12px; color: #6B8799;">HealthAxis Technologies • Secure & Professional Healthcare</p>
-            </div>
-          `,
-        };
-        await transporter.sendMail(mailOptions);
+        await axios.post(
+          'https://api.brevo.com/v3/smtp/email',
+          {
+            sender: { email: process.env.EMAIL_FROM, name: "HealthAxis Team" },
+            to: [{ email: user.email, name: user.name }],
+            subject: `How was your appointment with Dr. ${doctor.name}?`,
+            htmlContent: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eff2f5; border-radius: 10px;">
+                  <h2 style="color: #0D7377;">Thank you for choosing HealthAxis, ${user.name}!</h2>
+                  <p>Your appointment with Dr. ${doctor.name} is now complete.</p>
+                  <p>We'd love to hear about your experience. Your feedback helps other patients make informed decisions and helps our doctors provide the best care possible.</p>
+                  <div style="text-align: center; margin: 30px 0;">
+                      <a href="${process.env.FRONTEND_URL}/my-appointments" style="background-color: #0D7377; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Leave a Review</a>
+                  </div>
+                  <hr style="border: none; border-top: 1px solid #eff2f5; margin: 20px 0;">
+                  <p style="font-size: 12px; color: #6B8799;">HealthAxis Technologies • Secure & Professional Healthcare</p>
+              </div>
+            `
+          },
+          {
+            headers: {
+              'accept': 'application/json',
+              'api-key': process.env.SMTP_PASS,
+              'content-type': 'application/json'
+            }
+          }
+        );
         console.log("Review request email sent to:", user.email);
       }
     } catch (emailError) {
-      console.error("Failed to send review request email:", emailError);
+      console.error("Failed to send review request email:");
+      if (emailError.response) {
+        console.error("Status:", emailError.response.status);
+        console.error("Data:", emailError.response.data);
+      } else {
+        console.error("Message:", emailError.message);
+      }
       // Don't fail the whole request if email fails
     }
 
