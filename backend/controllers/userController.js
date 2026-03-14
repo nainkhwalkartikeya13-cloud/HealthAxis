@@ -63,6 +63,12 @@ const registerUser = async (req, res) => {
         if (password.length < 8) {
             return res.json({ success: false, message: "Please enter a strong password" })
         }
+        // checking if user already exists
+        const exists = await userModel.findOne({ email });
+        if (exists) {
+            return res.status(400).json({ success: false, message: "User already exists" })
+        }
+
         // hashing user password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt)
@@ -87,12 +93,16 @@ const registerUser = async (req, res) => {
             await sendVerificationEmail(email, name, verificationCode);
         } catch (mailError) {
             console.error('Nodemailer Error:', mailError.message);
+            // We don't fail registration if email fails, user can resend later
         }
 
         res.json({ success: true, message: 'Verification code sent to your email' })
     } catch (error) {
-        console.error('Register error:', error.message)
-        res.status(500).json({ success: false, message: error.message })
+        console.error('Register error:', error)
+        if (error.code === 11000) {
+            return res.status(400).json({ success: false, message: "User already exists" })
+        }
+        res.status(500).json({ success: false, message: "Internal Server Error" })
     }
 }
 // API to login user
