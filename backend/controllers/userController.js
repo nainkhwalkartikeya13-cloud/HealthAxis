@@ -44,7 +44,19 @@ const sendVerificationEmail = async (email, name, code) => {
         `,
     };
 
-    await transporter.sendMail(mailOptions);
+    try {
+        console.log(`[NODEMAILER DEBUG] Attempting to send email to ${email}`);
+        console.log(`[NODEMAILER DEBUG] Config - Host: ${process.env.SMTP_HOST}, Port: ${process.env.SMTP_PORT}, Secure: ${Number(process.env.SMTP_PORT) === 465}, User: ${process.env.SMTP_USER}`);
+
+        await transporter.sendMail(mailOptions);
+        console.log(`[NODEMAILER DEBUG] Email sent successfully to ${email}`);
+    } catch (error) {
+        console.error(`[NODEMAILER CRITICAL ERROR] Failed to send email to ${email}`);
+        console.error(`[NODEMAILER CRITICAL ERROR] Error code: ${error.code}`);
+        console.error(`[NODEMAILER CRITICAL ERROR] Error message: ${error.message}`);
+        console.error(`[NODEMAILER CRITICAL ERROR] Full error stack:`, error);
+        throw error;
+    }
 };
 
 
