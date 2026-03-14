@@ -51,21 +51,25 @@ const sendVerificationEmail = async (email, name, code) => {
 const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body;
+        console.log(`[REGISTRATION ATTEMPT] Name: ${name}, Email: ${email}`);
+
         // checking for all data to register user
         if (!name || !email || !password) {
-            return res.json({ success: false, message: 'Missing Details' })
+            return res.status(400).json({ success: false, message: 'Missing Details' })
         }
         // validating email format
         if (!validator.isEmail(email)) {
-            return res.json({ success: false, message: "Please enter a valid email" })
+            return res.status(400).json({ success: false, message: "Please enter a valid email" })
         }
         // validating strong password
         if (password.length < 8) {
-            return res.json({ success: false, message: "Please enter a strong password" })
+            return res.status(400).json({ success: false, message: "Please enter a strong password" })
         }
+
         // checking if user already exists
         const exists = await userModel.findOne({ email });
         if (exists) {
+            console.warn(`[REGISTRATION FAILED] User already exists: ${email}`);
             return res.status(400).json({ success: false, message: "User already exists" })
         }
 
@@ -92,13 +96,13 @@ const registerUser = async (req, res) => {
         try {
             await sendVerificationEmail(email, name, verificationCode);
         } catch (mailError) {
-            console.error('Nodemailer Error:', mailError.message);
+            console.error('[NODEMAILER ERROR]', mailError.message);
             // We don't fail registration if email fails, user can resend later
         }
 
         res.json({ success: true, message: 'Verification code sent to your email' })
     } catch (error) {
-        console.error('Register error:', error)
+        console.error('[REGISTRATION ERROR]', error)
         if (error.code === 11000) {
             return res.status(400).json({ success: false, message: "User already exists" })
         }
