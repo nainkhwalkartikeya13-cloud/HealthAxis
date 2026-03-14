@@ -14,47 +14,50 @@ import crypto from 'crypto';
 const twilioClient = new twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: Number(process.env.SMTP_PORT) === 465, // true for 465, false for other ports
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
+import axios from 'axios';
 
 const sendVerificationEmail = async (email, name, code) => {
-    const mailOptions = {
-        from: `"HealthAxis Team" <${process.env.EMAIL_FROM}>`,
-        to: email,
-        subject: "Verify your HealthAxis account",
-        html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eff2f5; border-radius: 10px;">
-                <h2 style="color: #0D7377;">Welcome to HealthAxis, ${name}!</h2>
-                <p>Thank you for signing up. Please use the following 6-digit code to verify your email address:</p>
-                <div style="font-size: 32px; font-weight: bold; color: #0D7377; letter-spacing: 5px; text-align: center; padding: 20px; background: #f4f7f9; border-radius: 8px; margin: 20px 0;">
-                    ${code}
-                </div>
-                <p>This code will expire in 1 hour.</p>
-                <p>If you did not create this account, please ignore this email.</p>
-                <hr style="border: none; border-top: 1px solid #eff2f5; margin: 20px 0;">
-                <p style="font-size: 12px; color: #6B8799;">HealthAxis Technologies • Secure & Professional Healthcare</p>
-            </div>
-        `,
-    };
-
     try {
-        console.log(`[NODEMAILER DEBUG] Attempting to send email to ${email}`);
-        console.log(`[NODEMAILER DEBUG] Config - Host: ${process.env.SMTP_HOST}, Port: ${process.env.SMTP_PORT}, Secure: ${Number(process.env.SMTP_PORT) === 465}, User: ${process.env.SMTP_USER}`);
+        console.log(`[BREVO API DEBUG] Attempting to send email to ${email} via HTTP API`);
 
-        await transporter.sendMail(mailOptions);
-        console.log(`[NODEMAILER DEBUG] Email sent successfully to ${email}`);
+        const response = await axios.post(
+            'https://api.brevo.com/v3/smtp/email',
+            {
+                sender: { email: process.env.EMAIL_FROM, name: "HealthAxis Team" },
+                to: [{ email: email, name: name }],
+                subject: "Verify your HealthAxis account",
+                htmlContent: `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eff2f5; border-radius: 10px;">
+                        <h2 style="color: #0D7377;">Welcome to HealthAxis, ${name}!</h2>
+                        <p>Thank you for signing up. Please use the following 6-digit code to verify your email address:</p>
+                        <div style="font-size: 32px; font-weight: bold; color: #0D7377; letter-spacing: 5px; text-align: center; padding: 20px; background: #f4f7f9; border-radius: 8px; margin: 20px 0;">
+                            ${code}
+                        </div>
+                        <p>This code will expire in 1 hour.</p>
+                        <p>If you did not create this account, please ignore this email.</p>
+                        <hr style="border: none; border-top: 1px solid #eff2f5; margin: 20px 0;">
+                        <p style="font-size: 12px; color: #6B8799;">HealthAxis Technologies • Secure & Professional Healthcare</p>
+                    </div>
+                `
+            },
+            {
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': process.env.SMTP_PASS,
+                    'content-type': 'application/json'
+                }
+            }
+        );
+
+        console.log(`[BREVO API DEBUG] Email sent successfully to ${email}. Message ID: ${response.data.messageId}`);
     } catch (error) {
-        console.error(`[NODEMAILER CRITICAL ERROR] Failed to send email to ${email}`);
-        console.error(`[NODEMAILER CRITICAL ERROR] Error code: ${error.code}`);
-        console.error(`[NODEMAILER CRITICAL ERROR] Error message: ${error.message}`);
-        console.error(`[NODEMAILER CRITICAL ERROR] Full error stack:`, error);
+        console.error(`[BREVO CRITICAL ERROR] Failed to send email to ${email}`);
+        if (error.response) {
+            console.error(`[BREVO CRITICAL ERROR] Status: ${error.response.status}`);
+            console.error(`[BREVO CRITICAL ERROR] Data:`, error.response.data);
+        } else {
+            console.error(`[BREVO CRITICAL ERROR] Message: ${error.message}`);
+        }
         throw error;
     }
 };
