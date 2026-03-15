@@ -11,8 +11,21 @@ import nodemailer from 'nodemailer';
 import { OAuth2Client } from 'google-auth-library';
 import crypto from 'crypto';
 
-const twilioClient = new twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+let twilioClient;
+const getTwilio = () => {
+    if (!twilioClient) {
+        twilioClient = new twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    }
+    return twilioClient;
+};
+
+let googleClient;
+const getGoogle = () => {
+    if (!googleClient) {
+        googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    }
+    return googleClient;
+};
 
 import axios from 'axios';
 
@@ -250,6 +263,7 @@ const bookAppointment = async (req, res) => {
             if (userData.phone && userData.phone !== '000000000') {
                 const message = `*HealthAxis Appointment Confirmed* 🏥\n\nHello ${userData.name},\n\nYour appointment with *${docData.name}* has been successfully scheduled.\n\n📅 *Date:* ${slotDate.replace(/_/g, '/')}\n🕒 *Time:* ${slotTime}\n🏢 *Address:* ${docData.address.line1}, ${docData.address.line2}\n\nPlease arrive 15 minutes early. Thank you for choosing HealthAxis!`;
 
+                const twilioClient = getTwilio();
                 await twilioClient.messages.create({
                     from: process.env.TWILIO_WHATSAPP_NUMBER,
                     to: `whatsapp:${userData.phone.startsWith('+') ? userData.phone : '+91' + userData.phone}`,
@@ -361,6 +375,7 @@ const cancelAppointment = async (req, res) => {
             if (refundAmount > 0) {
                 try {
                     // Fetch payments for this order
+                    const razorpayInstance = getRazorpay();
                     const payments = await razorpayInstance.orders.fetchPayments(appointmentData.paymentId);
 
                     // Assuming we refund the first successful payment attached to this order
@@ -368,6 +383,7 @@ const cancelAppointment = async (req, res) => {
 
                     if (successfulPayment) {
                         // Execute Refund via Razorpay API
+                        const razorpayInstance = getRazorpay();
                         await razorpayInstance.payments.refund(successfulPayment.id, {
                             amount: refundAmount * 100, // Amount in paise
                             notes: {
@@ -424,10 +440,16 @@ const listAppointment = async (req, res) => {
     }
 }
 
-const razorpayInstance = new razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-})
+let razorpayInstance;
+const getRazorpay = () => {
+    if (!razorpayInstance) {
+        razorpayInstance = new razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET
+        })
+    }
+    return razorpayInstance;
+}
 
 // API to make payment of appointment using razorpay
 const paymentRazorpay = async (req, res) => {
@@ -448,6 +470,7 @@ const paymentRazorpay = async (req, res) => {
         }
 
         // creation of an order
+        const razorpayInstance = getRazorpay();
         const order = await razorpayInstance.orders.create(options)
 
         res.json({ success: true, order })
@@ -462,6 +485,7 @@ const paymentRazorpay = async (req, res) => {
 const verifyRazorpay = async (req, res) => {
     try {
         const { razorpay_order_id } = req.body
+        const razorpayInstance = getRazorpay();
         const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id)
 
         if (orderInfo.status === 'paid') {
@@ -541,6 +565,7 @@ const resendCode = async (req, res) => {
 const googleLogin = async (req, res) => {
     try {
         const { credential } = req.body;
+        const googleClient = getGoogle();
         const ticket = await googleClient.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID
