@@ -6,10 +6,16 @@ import userModel from "../models/userModel.js";
 import axios from 'axios';
 import razorpay from 'razorpay';
 
-const razorpayInstance = new razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+let razorpayInstance;
+function getRazorpay() {
+  if (!razorpayInstance) {
+    razorpayInstance = new razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  }
+  return razorpayInstance;
+}
 
 // Doctor login
 const loginDoctor = async (req, res) => {
