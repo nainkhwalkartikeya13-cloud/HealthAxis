@@ -51,7 +51,7 @@ contactRouter.post('/send', async (req, res) => {
       {
         headers: {
           'accept': 'application/json',
-          'api-key': process.env.SMTP_PASS,
+          'api-key': process.env.BREVO_API_KEY,
           'content-type': 'application/json'
         }
       }
@@ -88,7 +88,7 @@ contactRouter.post('/send', async (req, res) => {
       {
         headers: {
           'accept': 'application/json',
-          'api-key': process.env.SMTP_PASS,
+          'api-key': process.env.BREVO_API_KEY,
           'content-type': 'application/json'
         }
       }
