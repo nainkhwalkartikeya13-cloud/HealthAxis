@@ -43,7 +43,7 @@ const sendVerificationEmail = async (email, name, code) => {
             {
                 headers: {
                     'accept': 'application/json',
-                    'api-key': process.env.SMTP_PASS,
+                    'api-key': process.env.BREVO_API_KEY,
                     'content-type': 'application/json'
                 }
             }
