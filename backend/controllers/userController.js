@@ -565,6 +565,12 @@ const resendCode = async (req, res) => {
 const googleLogin = async (req, res) => {
     try {
         const { credential } = req.body;
+
+        if (!process.env.GOOGLE_CLIENT_ID) {
+            console.error('❌ [GOOGLE AUTH ERROR] GOOGLE_CLIENT_ID is missing in backend environment variables.');
+            return res.json({ success: false, message: "Backend configuration error (Google Client ID missing)" });
+        }
+
         const googleClient = getGoogle();
         const ticket = await googleClient.verifyIdToken({
             idToken: credential,
