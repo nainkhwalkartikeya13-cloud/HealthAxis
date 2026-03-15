@@ -96,6 +96,7 @@ const appointmentCancel = async (req, res) => {
 
       if (refundAmount > 0) {
         try {
+          const razorpayInstance = getRazorpay();
           const payments = await razorpayInstance.orders.fetchPayments(appointment.paymentId);
           const successfulPayment = payments.items.find(p => p.status === 'captured');
 
